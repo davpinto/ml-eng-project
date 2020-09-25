@@ -1,0 +1,12 @@
+jupyter
+unidecode
+nltk
+numpy
+scipy
+pandas
+scikit-learn
+matplotlib
+plotnine
+faiss
+implicit
+lightfm
