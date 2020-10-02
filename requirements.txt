@@ -4,6 +4,7 @@ nltk
 numpy
 scipy
 pandas
+vaex
 scikit-learn
 matplotlib
 plotnine
