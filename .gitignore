@@ -1,4 +1,6 @@
-data/*
+data/*.csv
+data/raw/*.csv
+data/raw/*.zip
 .ipynb_checkpoints/*
 output/*
 src/__pycache__/*
