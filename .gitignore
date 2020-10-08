@@ -1,4 +1,5 @@
 data/*.csv
+data/*.hdf5
 data/raw/*.csv
 data/raw/*.zip
 .ipynb_checkpoints/*
