@@ -9,5 +9,4 @@ scikit-learn
 matplotlib
 plotnine
 faiss
-implicit
 lightfm
