@@ -3,5 +3,6 @@ data/*.hdf5
 data/raw/*.csv
 data/raw/*.zip
 .ipynb_checkpoints/*
-output/*
+output/*.tsv
+output/*.csv
 src/__pycache__/*

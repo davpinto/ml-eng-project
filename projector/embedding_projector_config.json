@@ -1,0 +1,13 @@
+{
+  "embeddings": [
+    {
+      "tensorName": "Movie Similarity",
+      "tensorShape": [
+        10000,
+        300
+      ],
+      "tensorPath": "https://raw.githubusercontent.com/sympla/public-word-embedding/master/word_embeddings_vectors.tsv",
+      "metadataPath": "https://raw.githubusercontent.com/sympla/public-word-embedding/master/word_embeddings_metadata.tsv"
+    }
+  ]
+}

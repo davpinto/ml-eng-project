@@ -6,7 +6,7 @@ LABEL maintainer="davpinto"
 WORKDIR /app
 
 # Install dependencies
-COPY app_requirements.txt requirements.txt
+COPY requirements.txt .
 RUN pip install -r requirements.txt
 
 # Copy data

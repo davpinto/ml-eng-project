@@ -1,12 +1,4 @@
-jupyter
-unidecode
-nltk
 numpy
-scipy
 pandas
-vaex
-scikit-learn
-matplotlib
-plotnine
 faiss-cpu
-lightfm
+streamlit
