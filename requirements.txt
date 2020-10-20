@@ -8,5 +8,5 @@ vaex
 scikit-learn
 matplotlib
 plotnine
-faiss
+faiss-cpu
 lightfm
