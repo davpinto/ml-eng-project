@@ -3,11 +3,11 @@
     {
       "tensorName": "Movie Similarity",
       "tensorShape": [
-        10000,
-        300
+        10698,
+        600
       ],
-      "tensorPath": "https://raw.githubusercontent.com/sympla/public-word-embedding/master/word_embeddings_vectors.tsv",
-      "metadataPath": "https://raw.githubusercontent.com/sympla/public-word-embedding/master/word_embeddings_metadata.tsv"
+      "tensorPath": "https://raw.githubusercontent.com/davpinto/movie-similarity/master/word_embeddings_vectors.tsv",
+      "metadataPath": "https://raw.githubusercontent.com/davpinto/movie-similarity/master/word_embeddings_metadata.tsv"
     }
   ]
 }
