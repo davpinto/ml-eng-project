@@ -6,8 +6,8 @@
         10698,
         600
       ],
-      "tensorPath": "https://raw.githubusercontent.com/davpinto/movie-similarity/master/word_embeddings_vectors.tsv",
-      "metadataPath": "https://raw.githubusercontent.com/davpinto/movie-similarity/master/word_embeddings_metadata.tsv"
+      "tensorPath": "https://raw.githubusercontent.com/davpinto/ml-eng-project/master/projector/embedding_vectors.tsv",
+      "metadataPath": "https://raw.githubusercontent.com/davpinto/ml-eng-project/master/projector/embedding_meta.tsv"
     }
   ]
 }
