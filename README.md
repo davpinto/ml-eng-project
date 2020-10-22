@@ -1,9 +1,11 @@
 Movie Similarity
 ================
 **Author:** David Pinto</br>
-2020-09-23
+2020-10-21
 
 > This project implements a recommender system for similar movies based on content and collaborative filtering embedding features.
+
+First of all, read the documentation at the `proposal` folder.
 
 ## Setup
 
@@ -28,25 +30,33 @@ python -m ipykernel install --user --name=movie-similarity
 
 ## Dataset
 
+Take a look at the `data/raw` folder to get instructions on how to download the dataset.
+
+## Notebooks
+
+The project is organized on Jupyter notebooks. They are numbered in the execution order. Each notebook is well documented. I hope you enjoy all code!
+
 ## Embedding Visualization
+
+You can play with the movie embedding features using the Embedding Projector [here](https://projector.tensorflow.org/?config=https://raw.githubusercontent.com/davpinto/ml-eng-project/master/projector/embedding_projector_config.json). It can take a few seconds to start. But it will be worth it!
+
+Take a look at the `projector` folder to see some results.
 
 ## Deploy Web Application
 
-## TODO
+The project provides a [Streamlit](https://www.streamlit.io/) application to play with the movie recommender.
 
-- Notebooks:
+To run it locally:
 
-01-data-preparation
-02-exploratory-analysis
-03-user-similarity
-04-content-based-embedding
-05-collaborative-filtering-embedding
-06-similarity-match-with-ann
-07-performance-evaluation
-08-hybrid-approach
+```bash
+make docker-build
+make docker-run
+```
 
-- Deploy best embeddings on the Embedding Projector
+Congratulations! You have it running on `127.0.0.1:8501`:
 
-- Streamlit app with Dockerfile for deployment
+------
+![](img/application.png)
+------
 
-- Documentation using Rmarkdown to be used as Github Page
+Choose an recommendation algorithm and a movie title to get recommendations of similar movies. I hope you enjoy it!
