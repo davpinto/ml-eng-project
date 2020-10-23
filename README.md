@@ -5,11 +5,17 @@ Movie Similarity
 
 > This project implements a recommender system for similar movies based on content and collaborative filtering embedding features.
 
-First of all, read the documentation at the `proposal` folder.
+[![Website ml-eng-proj](https://img.shields.io/website-up-down-green-red/http/shields.io.svg)](http://davpinto.github.io/ml-eng-proj/)
+
+## Documentation
+
+- **Project Proposal** (PDF): [Proposal](https://github.com/davpinto/ml-eng-project/blob/master/proposal/proposal.pdf).
+- **Project Report** (PDF): [Report](https://github.com/davpinto/ml-eng-project/blob/master/docs/report.pdf).
+- **Project Report** (HTML): [Website](http://davpinto.github.io/ml-eng-proj/).
 
 ## Setup
 
-Create a `conda` environment:
+Create a `conda` environment and install all required packages listed in the `env_requirements.txt` file.
 
 ```
 # Create environment
@@ -28,13 +34,33 @@ conda install -y --file env_requirements.txt
 python -m ipykernel install --user --name=movie-similarity
 ```
 
+### Required Pakages
+
+- `numpy` and `pandas` for data cleaning, manipulation and transformation.
+- `scipy` for sparse matrices and correlation measures.
+- `unidecode` and `nltk` for text manipulation.
+- `scikit-learn` for data normalization and text vectorization.
+- `vaex` for manipulation of large DataFrames.
+- `matplotlib` and `plotnine` for data visualization.
+- `lightfm` for collaborative filtering with matrix factorization.
+- `faiss` for fast Approximate Nearest Neighbors algorithms.
+
 ## Dataset
 
 Take a look at the `data/raw` folder to get instructions on how to download the dataset.
 
 ## Notebooks
 
-The project is organized on Jupyter notebooks. They are numbered in the execution order. Each notebook is well documented. I hope you enjoy all code!
+The project is organized on Jupyter notebooks. Each notebook is self-contained and well documented:
+
+- [1. Data Preparation](https://nbviewer.jupyter.org/github/davpinto/ml-eng-project/blob/master/01-data-preparation.ipynb).
+- [2. Exploratory Analysis](https://nbviewer.jupyter.org/github/davpinto/ml-eng-project/blob/master/02-exploratory-analysis.ipynb).
+- [3. User Based Similarity](https://nbviewer.jupyter.org/github/davpinto/ml-eng-project/blob/master/03-user-based-similarity.ipynb).
+- [4. Content Based Embedding](https://nbviewer.jupyter.org/github/davpinto/ml-eng-project/blob/master/04-content-based-embedding.ipynb).
+- [5. Collaborative Fltering Embedding](https://nbviewer.jupyter.org/github/davpinto/ml-eng-project/blob/master/05-collaborative-filtering-embedding.ipynb).
+- [6. Similarity Match with ANN](https://nbviewer.jupyter.org/github/davpinto/ml-eng-project/blob/master/06-similarity-match-with-ann.ipynb).
+- [7. Performance Evaluation](https://nbviewer.jupyter.org/github/davpinto/ml-eng-project/blob/master/07-performance-evaluation.ipynb).
+- [8. Hybrid Approach](https://nbviewer.jupyter.org/github/davpinto/ml-eng-project/blob/master/08-hybrid-approach.ipynb).
 
 ## Embedding Visualization
 
