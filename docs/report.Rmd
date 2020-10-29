@@ -12,58 +12,63 @@ output:
       toc: true
       toc_depth: 2
       number_sections: false
+      highlight: tango
+urlcolor: blue
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo=TRUE,  dev="cairo_pdf", message=FALSE, warning=FALSE,
+knitr::opts_chunk$set(echo=FALSE,  dev="cairo_pdf", message=FALSE, warning=FALSE,
                       cache=FALSE, fig.align="center", fig.path="img/", dpi = 90, 
                       fig.height = 4.25, out.width = "80%", cache = FALSE, 
                       cache.path = "cache/")
 ```
 
-# Introduction
+# I. Definition
 
-The **Movie Similarity** project aims to recommend similar items given a particular movie, so that users that already watched the later are likely to enjoy the recommended movies. It involves **Recommender Systems**$^1$ theory and **Similarity Matching**$^2$ technique.
+## Project Overview
+
+The main goal of this project is to develop a **Movie Similarity Recommender** over the full version of the famous [MovieLens](https://grouplens.org/datasets/movielens/) dataset. The developed solution aims to recommend similar items given a particular movie, so that users that already watched the later are likely to enjoy the recommended movies. It involves **Recommender Systems**$^1$ theory and **Similarity Matching**$^2$ techniques.
+
+To properly achieve this we combine two datasets, one that provides movie ratings to be used as interaction data, and another that provides movie metadata to be used as content features.
+
+### Movie Ratings
+
+The full [MovieLens](https://grouplens.org/datasets/movielens/latest/) dataset, which contains `27M ratings` given to `58K movies` by `280K users`.
+
+### Movie Metadata
+
+Data retrieved from the [TMDB Open API](https://www.themoviedb.org/documentation/api) and available as a [Kaggle Dataset](https://www.kaggle.com/rounakbanik/the-movies-dataset). It contains information on 45k movies featured in the full MovieLens dataset. Features include title, description, genre and cast&crew information.
+
+## Problem Statement
 
 Recommending similar items is a very common task in many online selling platforms$^3$. It provides recommendations like: **related to items you've viewed**, **recommended for you based on your previous purchase**, **customers who bought this item already bought**, so on. The main challenges involved are:
 
-### The cold start problem
+**(a) The cold start problem**
 
 How to recommend recent added products with few or no associated interaction data?
 
-One way to cope with this consists in take advantage of product metadata (content features): `name`, `description`, `category`, `price level`, so on. Then we can link a product with others by content similarity. We call this as **content based** approach.
+One way to cope with this consists in take advantage of product metadata (content features): `name`, `description`, `category`, `price level`, so on. Then we can link a product with others by content similarity. We call this as **Content Based** approach.
 
-### Item popularity
+**(b) The popularity bias problem**
 
-According to the **long tail phenomenon**$^4$, selling niche products has many advantages. Users are likely to pay more for niche products because they cannot find it everywhere. However, best seller products have more interaction data available to train a recommender system so that the fitted model may be subjected to popularity bias. In other words, the model will be more likely to recommend popular items.
+According to the **Long Tail phenomenon**$^4$, selling niche products has many advantages. Users are likely to pay more for niche products because they cannot find it everywhere. However, best seller products have more interaction data available to train a recommender system so that the fitted model may be subjected to popularity bias. In other words, the model will be more likely to recommend popular items.
 
-Again, using content features to find similar items reduces popularity bias. But interaction data is very important to understand user behavior and cannot be discarded. So, in this project we will use **Collaborative Filtering** techniques that take into account item popularity.
+Again, using content features to find similar items reduces popularity bias. But interaction data is very important to understand user behavior and cannot be discarded. So, in this project we apply a **Collaborative Filtering** factorization that takes into account item and user popularity.
 
-# Dataset
+### Movie Embeddings and Similarity Matching
 
-In this project we will combine two datasets, one that provides movie ratings to be used as interaction data, and another that provides movie metadata to be used as content features.
+First of all, we use both interaction and content data to extract item embedding$^5$ features, which are low-dimensional dense vectors that captures some of the semantics of the item by placing semantically similar items close together in the embedding space. It allows efficient nearest neighbors search, so that we can find similar movies fast in application time.
 
-## Movie Ratings
+- **Content Embedding:** embedding features extracted from text fields like title and description, and from categorical fields like genre and cast&crew.
+- **Collaborative Filtering Embedding:** embedding features extracted from user-movie interactions given by the ratings.
 
-The full [MovieLens (link)](https://grouplens.org/datasets/movielens/latest/) dataset, which contains `27M ratings` given to `58K movies` by `280K users`.
+All the details about the feature extraction process will be discussed later.
 
-## Movie Metadata
+After computing the embedding features, similar movies will be recommended using **Approximate Nearest Neighbors** (ANN) search with cosine similarity. The cosine similarity is the most common affinity metric applied for similarity search in the embedding space.
 
-Data retrieved from the [TMDB Open API (link)](https://www.themoviedb.org/documentation/api) and available as a [Kaggle Dataset (link)](https://www.kaggle.com/rounakbanik/the-movies-dataset). It contains information on 45k movies featured in the full MovieLens dataset. Features include title, description, genre and cast&crew information.
+## Metrics
 
-# Movie Embeddings and Similarity Matching
-
-First of all, we need to extract item embedding$^5$ features, which are low-dimensional dense vectors that captures some of the semantics of the item by placing semantically similar items close together in the embedding space. It allows efficient nearest neighbors search, so that we can find similar movies fast in application time.
-
-## Content Embeddings
-
-Embedding features extracted from text fields like title and description, and from categorical fields like genre and cast&crew. More details in the Project Design section.
-
-## Collaborative Filtering Embeddings
-
-Embedding features extracted from user-movie interactions given by the ratings. More details in the Project Design section.
-
-# Users Intersection as a Similarity Measure
+### Users Intersection as a Similarity Measure
 
 Let's consider every rating (from 1 to 5) above 3.5 as an explicit feedback that the user liked the movie. Then we can measure the similarity between a pair of movies $(x,y)$ as:
 
@@ -73,17 +78,17 @@ $$
 
 where $N_x$ is the number of users that liked movie x, $N_y$ is the number of users that liked movie y, and $N_{xy}$ is the number of users that liked both x and y.
 
-So, $S(x,y)$ close to 1 is a strong evidence that users who liked x will like y too.
+So, $S(x,y)$ close to 1 is a strong evidence that users who liked x will like y too. We call this as **User Correlation**.
 
-But this kind of similarity is very sparse, providing a discrete recommendation. In other words, we will have many movies with few or none similar items to be recommended. 
+Despite providing good recommendations, this similarity is very sparse, resulting in a discrete recommendation. So, if we try to recommend the top 30 similar to each movie we will get less than 30 for many movies. In other words, we will have many movies with few or none similar items to be recommended. 
 
 The embedding features solve this problem. Since we are computing distances between pairs of movies in a dense and low-dimensional space, the embedding features provide a continuous recommendation. We are able to find similar items to any movie, with high evidence (low distance) or low evidence (high distance).
 
-# Model Evaluation
+### Evaluating the Embedding Features
 
-How close the similarity match with embedding features can get to the similarity match given by the user's likes?
+How close the similarity match with embedding features can get to the similarity match given by the user's likes (user correlation)?
 
-## Ranking correlation
+**(a) Ranking correlation**
 
 In a attempt to answer this question, we can randomly select $n$ test movies and get their top N similar using the $S(x,y)$ measure. Then, for each test movie, we get the distances $D(x,y)$ from the top N similar using the embedding features. Finally, for each test movie, we apply the Spearman's Rank-Order Correlation Coefficient ($\rho$) between $S$ and $1/D$, which is equal to the Pearson's correlation between the rank values of them.
 
@@ -93,7 +98,7 @@ $$
 \frac{1}{n}\sum_{i=1}^n\rho(S_i, 1/D_i)
 $$
 
-## Precision and Recall at K
+**(b) Precision and Recall at K**
 
 Given a threshold $t_S$ for $S(x,y)$, we will assume that $S(x,y) \geq t_S$ indicates a strong/relevant similarity. So, given the K nearest neighbors from embedding features of a test movie:
 
@@ -105,52 +110,146 @@ $$
 \text{recall@k} = \frac{\#\text{relevants@k}}{\#\text{relevants}}
 $$
 
-For all test movies, we get an average Precision@K and an average Recall@K.
+For all test movies, we get an average $\text{Precision@K}$ and an average $\text{Recall@K}$.
 
-# Project Design
+# II. Analysis
 
-## Building Content Embeddings
+## Data Preparation
 
-For text features (title, description, keywords and user comments) we will concatenate them all and extract a sparse TF-IDF matrix using the [`TfidfVectorizer` (link)](https://scikit-learn.org/stable/modules/generated/sklearn.feature_extraction.text.TfidfVectorizer.html).
+First of all, take a look at `data/raw` to get instructions on how to download the datasets.
 
-For the categorical features (genre, cast and crew) we will expand them into sparse binary features.
+Data Preparation was a quite hard extra work in this project. As a previous step, we had to apply some manipulations in order to prepare data for analysis: 
 
-Both representations result in high-dimensional and sparse matrices. So, we will combine them and apply the sparse [`TruncatedSVD` (link)](https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.linalg.svds.html) algorithm to get low-dimensional and dense representations.
+1. We set MovieLens ID as the primary key in both datasets, MovieLens and TMDB.
+1. We transformed Cast&Crew, movie Genre and movie Keywords data from a JSON format to a [Tidy Data](https://cran.r-project.org/web/packages/tidyr/vignettes/tidy-data.html) format.
+1. We concatenated all movie Keywords in a single text field.
+1. We concatenated all movie Tags assigned by the users in a single text field.
 
-The [`implicit` (link)](https://implicit.readthedocs.io/en/latest/index.html) package provides some fast factorization algorithms more powerful than SVD. They are great alternatives!
+Then, we applied some filters in an attempt to discard weak relations in the data:
 
-## Building CF Embeddings
+1. In the Cast data we selected actors that appeared in at least 10 movies.
+1. In the Crew data we considered just `director`, `producer` and `writer`, and selected those that appeared in at least 10 movies.
+1. From the movie metadata we selected just the text fields: `title`, `overview` and `tagline`.
+1. From the ratings data (interaction data) we removed users which voted less than 3 tines and movies with less than 30 votes. Items and users with poor interaction information can induce Collaborative Filtering to learn wrong correlations in the data.
 
-The [`surprise` (link)](http://surpriselib.com/) package provides many classical factorization algorithms for explicit feedback problems. We can apply than in the user-movie ratings matrix to extract latent factors for the users and movies. Then, the movie factors can be used as embedding features.
-But we will try an approach based on likes and dislikes. Ratings above 3.5 will be considered likes (+1), while ratings below 3.5 will be considered dislikes (-1). From this assumption, we can build a user-movie matrix with (-1,+1) values and use a logistic loss to factorize this matrix. The [`LighFM` (link)](https://making.lyst.com/lightfm/docs/lightfm.html) package provides a logistic loss factorization algorithm with additive bias. So, it takes into account the user and the movie bias, abstracting popularity away from the embedding features. This way it tries solve the item popularity problem.
+All code is well organized and documented in the `01-data-preparation.ipynb` notebook.
 
-## Similarity Match
+## Data Exploration
 
-After computing the embedding features we will recommend similar movies using an approximate nearest neighbors search with cosine similarity. The [`faiss` (link)](https://github.com/facebookresearch/faiss) package provides an extremely fast ANN algorithm.
+From the Data Preparation step we finished up with 7 datasets in tidy format:
 
-## Hybrid Approach
+- `data/movie_info.csv`:
+```{r}
+library(data.table)
+library(knitr)
 
-We will evaluate the recommendations from the content embedding features and compare it with the performance for the CF embedding features. Then, as a final attempt, we will try a hybrid approach, as follows:
+dt <- fread("../data/movie_info.csv", nrows=5, select=c("id", "title", "overview", "tagline"))
+dt[, overview := sprintf("%s (...)", substr(overview, 1, 30))]
+dt[, tagline := sprintf("%s (...)", substr(tagline, 1, 30))]
 
-1. Select a target movie for which we will recommend similar ones.
-1. Compute the cosine similarity between the target and the candidates using the content embedding features.
-1. Compute the cosine similarity between the target and the candidates using the CF embedding features.
-1. Order the candidates by the sum between the computed similarities in the last 2 steps.
+kable(dt)
+```
 
-This approach combines content information with interaction information and may provide better recommendations.
+- `data/movie_keywords.csv`:
+- `data/movie_tags.csv`:
+- `data/movie_genre.csv`:
+- `data/movie_actor.csv`:
+- `data/movie_producer`:
+- `data/movie_ratings`
 
-# Movie Similarity Dashboard
+In this section, you will be expected to analyze the data you are using for the problem. This data can either be in the form of a dataset (or datasets), input data (or input files), or even an environment. The type of data should be thoroughly described and, if possible, have basic statistics and information presented (such as discussion of input features or defining characteristics about the input or environment). Any abnormalities or interesting qualities about the data that may need to be addressed have been identified (such as features that need to be transformed or the possibility of outliers). Questions to ask yourself when writing this section:
+- _If a dataset is present for this problem, have you thoroughly discussed certain features about the dataset? Has a data sample been provided to the reader?_
+- _If a dataset is present for this problem, are statistics about the dataset calculated and reported? Have any relevant results from this calculation been discussed?_
+- _If a dataset is **not** present for this problem, has discussion been made about the input space or input data for your problem?_
+- _Are there any abnormalities or characteristics about the input space or dataset that need to be addressed? (categorical variables, missing values, outliers, etc.)_
 
-Finally, we will build a web application on which the user can choose a movie and get recommendations of similar movies. For this we will use the [`Streamlit` (link)](https://docs.streamlit.io/en/stable/) framework.
+## Exploratory Visualization
+In this section, you will need to provide some form of visualization that summarizes or extracts a relevant characteristic or feature about the data. The visualization should adequately support the data being used. Discuss why this visualization was chosen and how it is relevant. Questions to ask yourself when writing this section:
+- _Have you visualized a relevant characteristic or feature about the dataset or input data?_
+- _Is the visualization thoroughly analyzed and discussed?_
+- _If a plot is provided, are the axes, title, and datum clearly defined?_
+
+## Algorithms and Techniques
+In this section, you will need to discuss the algorithms and techniques you intend to use for solving the problem. You should justify the use of each one based on the characteristics of the problem and the problem domain. Questions to ask yourself when writing this section:
+- _Are the algorithms you will use, including any default variables/parameters in the project clearly defined?_
+- _Are the techniques to be used thoroughly discussed and justified?_
+- _Is it made clear how the input data or datasets will be handled by the algorithms and techniques chosen?_
+
+## Benchmark
+In this section, you will need to provide a clearly defined benchmark result or threshold for comparing across performances obtained by your solution. The reasoning behind the benchmark (in the case where it is not an established result) should be discussed. Questions to ask yourself when writing this section:
+- _Has some result or value been provided that acts as a benchmark for measuring performance?_
+- _Is it clear how this result or value was obtained (whether by data or by hypothesis)?_
+
+
+# III. Methodology
+_(approx. 3-5 pages)_
+
+## Data Preprocessing
+In this section, all of your preprocessing steps will need to be clearly documented, if any were necessary. From the previous section, any of the abnormalities or characteristics that you identified about the dataset will be addressed and corrected here. Questions to ask yourself when writing this section:
+- _If the algorithms chosen require preprocessing steps like feature selection or feature transformations, have they been properly documented?_
+- _Based on the **Data Exploration** section, if there were abnormalities or characteristics that needed to be addressed, have they been properly corrected?_
+- _If no preprocessing is needed, has it been made clear why?_
+
+## Implementation
+In this section, the process for which metrics, algorithms, and techniques that you implemented for the given data will need to be clearly documented. It should be abundantly clear how the implementation was carried out, and discussion should be made regarding any complications that occurred during this process. Questions to ask yourself when writing this section:
+- _Is it made clear how the algorithms and techniques were implemented with the given datasets or input data?_
+- _Were there any complications with the original metrics or techniques that required changing prior to acquiring a solution?_
+- _Was there any part of the coding process (e.g., writing complicated functions) that should be documented?_
+
+## Refinement
+In this section, you will need to discuss the process of improvement you made upon the algorithms and techniques you used in your implementation. For example, adjusting parameters for certain models to acquire improved solutions would fall under the refinement category. Your initial and final solutions should be reported, as well as any significant intermediate results as necessary. Questions to ask yourself when writing this section:
+- _Has an initial solution been found and clearly reported?_
+- _Is the process of improvement clearly documented, such as what techniques were used?_
+- _Are intermediate and final solutions clearly reported as the process is improved?_
+
+
+# IV. Results
+_(approx. 2-3 pages)_
+
+## Model Evaluation and Validation
+In this section, the final model and any supporting qualities should be evaluated in detail. It should be clear how the final model was derived and why this model was chosen. In addition, some type of analysis should be used to validate the robustness of this model and its solution, such as manipulating the input data or environment to see how the model’s solution is affected (this is called sensitivity analysis). Questions to ask yourself when writing this section:
+- _Is the final model reasonable and aligning with solution expectations? Are the final parameters of the model appropriate?_
+- _Has the final model been tested with various inputs to evaluate whether the model generalizes well to unseen data?_
+- _Is the model robust enough for the problem? Do small perturbations (changes) in training data or the input space greatly affect the results?_
+- _Can results found from the model be trusted?_
+
+## Justification
+In this section, your model’s final solution and its results should be compared to the benchmark you established earlier in the project using some type of statistical analysis. You should also justify whether these results and the solution are significant enough to have solved the problem posed in the project. Questions to ask yourself when writing this section:
+- _Are the final results found stronger than the benchmark result reported earlier?_
+- _Have you thoroughly analyzed and discussed the final solution?_
+- _Is the final solution significant enough to have solved the problem?_
+
+
+# V. Conclusion
+_(approx. 1-2 pages)_
+
+## Free-Form Visualization
+In this section, you will need to provide some form of visualization that emphasizes an important quality about the project. It is much more free-form, but should reasonably support a significant result or characteristic about the problem that you want to discuss. Questions to ask yourself when writing this section:
+- _Have you visualized a relevant or important quality about the problem, dataset, input data, or results?_
+- _Is the visualization thoroughly analyzed and discussed?_
+- _If a plot is provided, are the axes, title, and datum clearly defined?_
+
+## Reflection
+In this section, you will summarize the entire end-to-end problem solution and discuss one or two particular aspects of the project you found interesting or difficult. You are expected to reflect on the project as a whole to show that you have a firm understanding of the entire process employed in your work. Questions to ask yourself when writing this section:
+- _Have you thoroughly summarized the entire process you used for this project?_
+- _Were there any interesting aspects of the project?_
+- _Were there any difficult aspects of the project?_
+- _Does the final model and solution fit your expectations for the problem, and should it be used in a general setting to solve these types of problems?_
+
+## Improvement
+In this section, you will need to provide discussion as to how one aspect of the implementation you designed could be improved. As an example, consider ways your implementation can be made more general, and what would need to be modified. You do not need to make this improvement, but the potential solutions resulting from these changes are considered and compared/contrasted to your current solution. Questions to ask yourself when writing this section:
+- _Are there further improvements that could be made on the algorithms or techniques you used in this project?_
+- _Were there algorithms or techniques you researched that you did not know how to implement, but would consider using if you knew how?_
+- _If you used your final solution as the new benchmark, do you think an even better solution exists?_
 
 # References
 
-[1] [Google's Introduction to Recommendation Systems (link)](https://developers.google.com/machine-learning/recommendation).
+[1] [Google's Introduction to Recommendation Systems](https://developers.google.com/machine-learning/recommendation).
 
-[2] [Building a real-time embeddings similarity matching system (link)](https://cloud.google.com/solutions/machine-learning/building-real-time-embeddings-similarity-matching-system).
+[2] [Building a real-time embeddings similarity matching system](https://cloud.google.com/solutions/machine-learning/building-real-time-embeddings-similarity-matching-system).
 
-[3] [The Amazon Recommendations Secret to Selling More Online (link)](http://rejoiner.com/resources/amazon-recommendations-secret-selling-online/).
+[3] [The Amazon Recommendations Secret to Selling More Online](http://rejoiner.com/resources/amazon-recommendations-secret-selling-online/).
 
 [4] Anderson, Chris. The long tail: Why the future of business is selling more for less. Hyperion, 2006.
 
-[5] [Overview: Extracting and serving feature embeddings for machine learning (link)](https://cloud.google.com/solutions/machine-learning/overview-extracting-and-serving-feature-embeddings-for-machine-learning).
+[5] [Overview: Extracting and serving feature embeddings for machine learning](https://cloud.google.com/solutions/machine-learning/overview-extracting-and-serving-feature-embeddings-for-machine-learning).

@@ -5,13 +5,13 @@ Movie Similarity
 
 > This project implements a recommender system for similar movies based on content and collaborative filtering embedding features.
 
-[![Website ml-eng-proj](https://img.shields.io/website-up-down-green-red/http/shields.io.svg)](http://davpinto.github.io/ml-eng-proj/)
+[![Website ml-eng-proj](https://img.shields.io/website-up-down-green-red/http/shields.io.svg)](http://davpinto.github.io/ml-eng-project/)
 
 ## Documentation
 
 - **Project Proposal** (PDF): [Proposal](https://github.com/davpinto/ml-eng-project/blob/master/proposal/proposal.pdf).
 - **Project Report** (PDF): [Report](https://github.com/davpinto/ml-eng-project/blob/master/docs/report.pdf).
-- **Project Report** (HTML): [Website](http://davpinto.github.io/ml-eng-proj/).
+- **Project Report** (HTML): [Website](http://davpinto.github.io/ml-eng-project/).
 
 ## Setup
 
@@ -67,6 +67,10 @@ The project is organized on Jupyter notebooks. Each notebook is self-contained a
 You can play with the movie embedding features using the Embedding Projector [here](https://projector.tensorflow.org/?config=https://raw.githubusercontent.com/davpinto/ml-eng-project/master/projector/embedding_projector_config.json). It can take a few seconds to start. But it will be worth it!
 
 Take a look at the `projector` folder to see some results.
+
+------
+![](img/projector.png)
+------
 
 ## Deploy Web Application
 
