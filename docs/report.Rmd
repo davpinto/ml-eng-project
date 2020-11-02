@@ -1,5 +1,5 @@
 ---
-title: "Capstone Project Proposal"
+title: "Capstone Project Report"
 subtitle: "Movie Similarity"
 author: "David Pinto"
 date: "`r Sys.Date()`"
@@ -18,9 +18,8 @@ urlcolor: blue
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo=FALSE,  dev="cairo_pdf", message=FALSE, warning=FALSE,
-                      cache=FALSE, fig.align="center", fig.path="img/", dpi = 90, 
-                      fig.height = 4.25, out.width = "80%", cache = FALSE, 
-                      cache.path = "cache/")
+                      fig.align="center", fig.path="img/", dpi = 90, fig.height = 4.25, 
+                      out.width = "80%", cache = TRUE, cache.path = "cache/")
 ```
 
 # I. Definition
@@ -141,41 +140,304 @@ From the Data Preparation step we finished up with 7 datasets in tidy format:
 - `data/movie_info.csv`:
 ```{r}
 library(data.table)
-library(knitr)
+library(kableExtra)
 
 dt <- fread("../data/movie_info.csv", nrows=5, select=c("id", "title", "overview", "tagline"))
 dt[, overview := sprintf("%s (...)", substr(overview, 1, 30))]
 dt[, tagline := sprintf("%s (...)", substr(tagline, 1, 30))]
 
-kable(dt)
+kbl(dt, booktabs = T) %>%
+  kable_styling(latex_options = "striped")
 ```
 
 - `data/movie_keywords.csv`:
-- `data/movie_tags.csv`:
-- `data/movie_genre.csv`:
-- `data/movie_actor.csv`:
-- `data/movie_producer`:
-- `data/movie_ratings`
+```{r}
+dt <- fread("../data/movie_keywords.csv", nrows=5)
+dt[, keywords := sprintf("%s (...)", substr(keywords, 1, 30))]
 
-In this section, you will be expected to analyze the data you are using for the problem. This data can either be in the form of a dataset (or datasets), input data (or input files), or even an environment. The type of data should be thoroughly described and, if possible, have basic statistics and information presented (such as discussion of input features or defining characteristics about the input or environment). Any abnormalities or interesting qualities about the data that may need to be addressed have been identified (such as features that need to be transformed or the possibility of outliers). Questions to ask yourself when writing this section:
-- _If a dataset is present for this problem, have you thoroughly discussed certain features about the dataset? Has a data sample been provided to the reader?_
-- _If a dataset is present for this problem, are statistics about the dataset calculated and reported? Have any relevant results from this calculation been discussed?_
-- _If a dataset is **not** present for this problem, has discussion been made about the input space or input data for your problem?_
-- _Are there any abnormalities or characteristics about the input space or dataset that need to be addressed? (categorical variables, missing values, outliers, etc.)_
+kbl(dt, booktabs = T) %>%
+  kable_styling(latex_options = "striped")
+```
+
+- `data/movie_tags.csv`:
+```{r}
+dt <- fread("../data/movie_tags.csv", nrows=5)
+dt[, tags := sprintf("%s (...)", substr(tags, 1, 30))]
+
+kbl(dt, booktabs = T) %>%
+  kable_styling(latex_options = "striped")
+```
+
+- `data/movie_genre.csv`:
+```{r}
+dt <- fread("../data/movie_genre.csv", nrows=5)
+
+kbl(dt, booktabs = T) %>%
+  kable_styling(latex_options = "striped")
+```
+
+- `data/movie_actor.csv`:
+```{r}
+dt <- fread("../data/movie_actor.csv", nrows=5)
+
+kbl(dt, booktabs = T) %>%
+  kable_styling(latex_options = "striped")
+```
+
+- `data/movie_producer`:
+```{r}
+dt <- fread("../data/movie_producer.csv", nrows=5)
+
+kbl(dt, booktabs = T) %>%
+  kable_styling(latex_options = "striped")
+```
+
+- `data/movie_ratings`:
+```{r}
+dt <- fread("../data/movie_ratings.csv", nrows=5)
+
+kbl(dt, booktabs = T) %>%
+  kable_styling(latex_options = "striped")
+```
+
+After all cleaning process we got text description for `20400` movies, keywords for `31116` movies, tags for `45981` movies, genres for `20136` movies, `10465` actors for a total of `35649` movies, `4106` director/producer/writer for a total of `24325` movies, and `27516829` ratings for a total of `15967` movies given by `273643` distinct users.
 
 ## Exploratory Visualization
+
+Now we invite you to take a brief tour over the data. For more details, the `02-exploratory-analysis.ipynb` notebook contains all code for the Exploratory Data Analysis we present here.
+
+### Ratings Distribution
+
+First of all, let's observe the distribution of ratings. We have 10 possible values for the user rating: `[0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0]`. In which proportion each one of these values appear in the data?
+
+```{r}
+library(symplyr)
+library(data.table)
+library(ggplot2)
+
+ratings <- file_import_csv("../data/movie_ratings.csv", threads = 6)
+
+ratings[, rating_cat := as.factor(sprintf('%.01f', rating))]
+ratings.dist <- ratings[, .(n = .N), by = 'rating_cat']
+
+plot_bars(x = ratings.dist$n, labels = ratings.dist$rating_cat) +
+  labs(x = "Rating Level", y = "Frequency") +
+  theme_symplyr()
+```
+
+Just a small part of the ratings fall bellow `3.0`. If we look at the movie average rating we will observe a similar behavior:
+
+```{r}
+ratings.avg = ratings[, .(avg_rating = mean(rating)), by = 'id']
+
+plot_histogram(x = ratings.avg$avg_rating, breaks = 30) +
+  labs(x = "Average Rating", y = "Frequency") +
+  scale_x_continuous(breaks = seq(0, 5, by = 0.5)) +
+  scale_y_continuous(breaks = seq(0, 1.5e3, by = 100)) +
+  theme_symplyr()
+```
+
+In general, users tend to give good ratings to the movies they vote. It may be an evidence that users are most likely to vote in those movies they like. It makes sense, since users usually watch movies with actors and/or directors they already know and like, and in the genre they like most.
+
+### Ratings as Likes and Dislikes
+
+In this project we will convert ratings to likes (`>=3.5`) and dislikes (`<3.5`). Let's take a look the the distribution of number of likes:
+
+```{r}
+ratings[, like := ifelse(rating >= 3.5, 1, 0)]
+ratings.like = ratings[, .(avg_rating = mean(rating), num_likes = sum(like), num_votes = .N), by = 'id']
+
+plot_histogram(x = log(ratings.like$num_likes + 1), breaks = 30) +
+  scale_x_continuous(breaks = seq(0, 12, by = 1), limits = c(0, 12)) +
+  scale_y_continuous(breaks = seq(0, 2e3, by = 2.5e2), limits = c(0, 2e3)) +
+  labs(x = "Log Num. Likes", y = "Frequency") +
+  theme_symplyr()
+```
+
+We got a very asymmetric empirical distribution, so we applied the `log` transformation to make it easy to visualize the full distribution. Just to have an idea, `10` in the log scale corresponds to about `22025` likes.
+
+Now, let's see how the number of dislikes behave:
+
+```{r}
+ratings.like[, num_dislikes := num_votes - num_likes]
+
+plot_histogram(x = log(ratings.like$num_dislikes + 1), breaks = 30) +
+  labs(x = "Log Num. Dislikes", y = "Frequency") +
+  scale_x_continuous(breaks = seq(0, 12, by = 1)) +
+  scale_y_continuous(breaks = seq(0, 2e3, by = 2.5e2)) +
+  theme_symplyr()
+```
+
+Is there any movie with more dislikes them likes?
+
+```{r}
+x <- log(ratings.like$num_likes + 1) - log(ratings.like$num_dislikes + 1)
+plot_histogram(x = x, breaks = 30) +
+  scale_x_continuous(breaks = seq(-4, 4)) +
+  scale_y_continuous(breaks = seq(0, 1.5e3, by = 2.5e2)) +
+  labs(x = "Log Num. Likes - Log Num. Dislikes", y = "Frequency") +
+  theme_symplyr()
+```
+
+Since we have negative values, the answer to the last question is yes.
+
+Is there a consistent bias in the average rating to popular movies?
+
+```{r}
+ggplot(ratings.like, aes(x = num_votes, y = avg_rating)) +
+  geom_point(size = 0.5, alpha = 0.8, color = "gray20") +
+  geom_smooth(color = "#66c2a5", alpha = 0.8, method = 'loess') +
+  scale_x_continuous(breaks = seq(0, 1e5, by = 1e4)) +
+  scale_y_continuous(breaks = seq(0, 5, by = 0.5)) +
+  labs(x = "Num. Votes", y = "Avg. Rating") +
+  theme_symplyr()
+```
+
+Again, the answer is yes. Movies with more than 20k votes have average rating above `3.0`. Movies with more than 50k votes tend to have average rating above `4.0`.
+ 
+### Most Liked and Most Hated Movies
+
+Which movies are the most liked by the users?
+
+```{r}
+movies <- file_import_csv("../data/movie_info.csv")
+
+setorder(ratings.like, -num_likes)
+best.movies <- merge(head(ratings.like, 10), movies[, c("id", "title")])
+setorder(best.movies, -num_likes)
+
+kbl(best.movies[, c('title', 'num_likes')], booktabs = T) %>%
+  kable_styling(latex_options = "striped")
+```
+
+How about the most disliked movies by the users?
+
+```{r}
+setorder(ratings.like, -num_dislikes)
+worst.movies <- merge(head(ratings.like, 10), movies[, c("id", "title")])
+setorder(worst.movies, -num_dislikes)
+
+kbl(worst.movies[, c('title', 'num_dislikes')], booktabs = T) %>%
+  kable_styling(latex_options = "striped")
+```
+### Genre Distribution
+
+```{r}
+genres <- file_import_csv("../data/movie_genre.csv")
+genres <- unique(genres, by = c('id', 'genre_id'))
+
+genre.prop <- genres[, .(n = .N), by = 'genre_name']
+
+plot_bars(x = genre.prop$n, labels = genre.prop$genre_name) +
+  labs(x = "Genre", y = "Num. Movies") +
+  scale_y_continuous(breaks = seq(0, 1e4, by = 1e3)) +
+  theme_symplyr()
+```
+
+### Most Liked Western and Horror Movies
+
+Let's take a look at my personal favorite genres, Western and Horror. Which movies are the most liked by the audience?
+
+**Western Movies:**
+
+```{r}
+genres.like <- merge(merge(ratings.like, genres, by = 'id'), movies, by = "id")
+setorder(genres.like, -num_likes)
+
+genres.like[genre_name == 'Western', c('title', 'num_likes')] %>% 
+  head(10) %>% 
+  kbl(booktabs = T) %>%
+  kable_styling(latex_options = "striped")
+```
+
+**Horror Movies:**
+
+```{r}
+genres.like[genre_name == 'Horror', c('title', 'num_likes')] %>% 
+  head(10) %>% 
+  kbl(booktabs = T) %>%
+  kable_styling(latex_options = "striped")
+```
+
+I totally agree with the ranking!
+
+### Most Liked and Most Hated Directors
+
+```{r}
+directors <- file_import_csv("../data/movie_producer.csv")[job == "Director",]
+directors <- unique(directors, by = c("id", "person_id"))
+directors <- merge(merge(directors, ratings.like, by = "id"), movies, by = "id")
+
+directors.stats <- directors[, .(num_likes = sum(num_likes), num_dislikes = sum(num_dislikes), 
+                                 best_movie = title[which.max(num_likes)], 
+                                 worst_movie = title[which.max(num_dislikes)],
+                                 name = person_name[1]), by = 'person_id']
+directors.stats[, delta_like := num_likes - num_dislikes]
+setorder(directors.stats, -delta_like)
+
+directors.stats[, c('name', 'delta_like',  'best_movie')] %>% 
+  head(15) %>% 
+  kbl(booktabs = T, col.names = c('Director', 'Delta Likes', 'Most Liked Movie')) %>%
+  kable_styling(latex_options = "striped")
+```
+
+```{r}
+directors.stats[, c('name', 'delta_like',  'worst_movie')] %>% 
+  tail(15) %>%
+  dplyr::arrange(delta_like) %>% 
+  kbl(booktabs = T, col.names = c('Director', 'Delta Likes', 'Most Hated Movie')) %>%
+  kable_styling(latex_options = "striped")
+```
+
+
+### Most Liked and Most Hated Actors
+
+```{r}
+actors <- file_import_csv("../data/movie_actor.csv")
+actors <- unique(actors, by = c("id", "actor_id"))
+actors <- merge(merge(actors, ratings.like, by = "id"), movies, by = "id")
+
+actors.stats <- actors[, .(num_likes = sum(num_likes), num_dislikes = sum(num_dislikes), 
+                           best_movie = title[which.max(num_likes)], 
+                           worst_movie = title[which.max(num_dislikes)],
+                           name = actor_name[1]), by = 'actor_id']
+actors.stats[, delta_like := num_likes - num_dislikes]
+setorder(actors.stats, -delta_like)
+
+actors.stats[, c('name', 'delta_like',  'best_movie')] %>% 
+  head(15) %>% 
+  kbl(booktabs = T, col.names = c('Actor', 'Delta Likes', 'Most Liked Movie')) %>%
+  kable_styling(latex_options = "striped")
+```
+```{r}
+actors.stats[, c('name', 'delta_like',  'worst_movie')] %>% 
+  tail(15) %>% 
+  dplyr::arrange(delta_like) %>% 
+  kbl(booktabs = T, col.names = c('Actor', 'Delta Likes', 'Most Hated Movie')) %>%
+  kable_styling(latex_options = "striped")
+```
+
+- Graphs from the notebook
+- Sanity test: best and worst movies, actors and producers.
+
 In this section, you will need to provide some form of visualization that summarizes or extracts a relevant characteristic or feature about the data. The visualization should adequately support the data being used. Discuss why this visualization was chosen and how it is relevant. Questions to ask yourself when writing this section:
 - _Have you visualized a relevant characteristic or feature about the dataset or input data?_
 - _Is the visualization thoroughly analyzed and discussed?_
 - _If a plot is provided, are the axes, title, and datum clearly defined?_
 
 ## Algorithms and Techniques
+
+- Algorithm description from the proposal
+
 In this section, you will need to discuss the algorithms and techniques you intend to use for solving the problem. You should justify the use of each one based on the characteristics of the problem and the problem domain. Questions to ask yourself when writing this section:
 - _Are the algorithms you will use, including any default variables/parameters in the project clearly defined?_
 - _Are the techniques to be used thoroughly discussed and justified?_
 - _Is it made clear how the input data or datasets will be handled by the algorithms and techniques chosen?_
 
 ## Benchmark
+
+- Results for the user correlation
+
 In this section, you will need to provide a clearly defined benchmark result or threshold for comparing across performances obtained by your solution. The reasoning behind the benchmark (in the case where it is not an established result) should be discussed. Questions to ask yourself when writing this section:
 - _Has some result or value been provided that acts as a benchmark for measuring performance?_
 - _Is it clear how this result or value was obtained (whether by data or by hypothesis)?_
@@ -185,12 +447,28 @@ In this section, you will need to provide a clearly defined benchmark result or 
 _(approx. 3-5 pages)_
 
 ## Data Preprocessing
+
+### Text Features
+
+### Categorical Features
+
+### Ratings
+
 In this section, all of your preprocessing steps will need to be clearly documented, if any were necessary. From the previous section, any of the abnormalities or characteristics that you identified about the dataset will be addressed and corrected here. Questions to ask yourself when writing this section:
 - _If the algorithms chosen require preprocessing steps like feature selection or feature transformations, have they been properly documented?_
 - _Based on the **Data Exploration** section, if there were abnormalities or characteristics that needed to be addressed, have they been properly corrected?_
 - _If no preprocessing is needed, has it been made clear why?_
 
 ## Implementation
+
+- Show projections
+
+### Content Based
+
+### Collaborative Filtering
+
+### Hybrid
+
 In this section, the process for which metrics, algorithms, and techniques that you implemented for the given data will need to be clearly documented. It should be abundantly clear how the implementation was carried out, and discussion should be made regarding any complications that occurred during this process. Questions to ask yourself when writing this section:
 - _Is it made clear how the algorithms and techniques were implemented with the given datasets or input data?_
 - _Were there any complications with the original metrics or techniques that required changing prior to acquiring a solution?_
@@ -213,12 +491,19 @@ In this section, the final model and any supporting qualities should be evaluate
 - _Is the model robust enough for the problem? Do small perturbations (changes) in training data or the input space greatly affect the results?_
 - _Can results found from the model be trusted?_
 
+### Ranking Correlation
+
+### Precision and Recall
+
+### Popularity Bias
+
 ## Justification
 In this section, your model’s final solution and its results should be compared to the benchmark you established earlier in the project using some type of statistical analysis. You should also justify whether these results and the solution are significant enough to have solved the problem posed in the project. Questions to ask yourself when writing this section:
 - _Are the final results found stronger than the benchmark result reported earlier?_
 - _Have you thoroughly analyzed and discussed the final solution?_
 - _Is the final solution significant enough to have solved the problem?_
 
+### Correlation between Content Based and Collaborative Filtering Embedding
 
 # V. Conclusion
 _(approx. 1-2 pages)_
